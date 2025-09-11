@@ -1,0 +1,8 @@
+<type>(<scope>)!?: <subject>
+
+# 무엇과 왜(필요시 불릿):
+# - 배경
+# - 주요 변경점/영향
+
+# BREAKING-CHANGE:
+# Resolved: #123
