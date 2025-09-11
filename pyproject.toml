@@ -18,3 +18,20 @@ packages = [
   "src/contexts",
   "src/shared",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+  "unit: 빠르고 순수한 단위 테스트",
+  "monad: 모나드(Maybe/Result/IO 등) 관련 테스트",
+  "integration: DB/네트워크 등 외부 의존성 통합 테스트",
+  "e2e: 끝단부터 끝단까지 흐름 점검 테스트",
+]
+addopts = "--strict-markers -ra"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
