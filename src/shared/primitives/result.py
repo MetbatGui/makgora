@@ -69,7 +69,7 @@ class Result(Generic[TValue, TError], ABC):
         return Ok(value=value) if value is not None else Err(error=err)
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, slots=True)
 class Ok(Result[TValue, TError]):
     """성공 결과(불변)."""
     value: TValue
@@ -90,7 +90,7 @@ class Ok(Result[TValue, TError]):
         return self.value
 
 
-@dataclass(frozen=True, slots=True, kw_only=True)
+@dataclass(frozen=True, slots=True)
 class Err(Result[TValue, TError]):
     """실패 결과(불변)."""
     error: TError

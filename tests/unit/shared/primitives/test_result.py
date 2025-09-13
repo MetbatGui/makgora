@@ -30,33 +30,6 @@ class TestResultBasicsAndImmutability:
         with pytest.raises(FrozenInstanceError):
             err.error = "E2"
 
-    def test_dataclass_flags_ok(self):
-        """GIVEN Ok 데이터클래스
-           WHEN dataclass 플래그/슬롯/kw_only를 점검하고 위치 인자로 생성 시도하면
-           THEN frozen/kw_only/slots가 참이며 위치 인자는 TypeError로 실패한다
-        """
-        assert dataclasses.is_dataclass(Ok)
-        params = Ok.__dataclass_params__
-        assert params.frozen is True
-        assert params.kw_only is True
-        assert hasattr(Ok, "__slots__")
-        # kw_only=True: 위치 인자 금지
-        with pytest.raises(TypeError):
-            Ok(123)  # type: ignore[misc]
-
-    def test_dataclass_flags_err(self):
-        """GIVEN Err 데이터클래스
-           WHEN dataclass 플래그/슬롯/kw_only를 점검하고 위치 인자로 생성 시도하면
-           THEN frozen/kw_only/slots가 참이며 위치 인자는 TypeError로 실패한다
-        """
-        assert dataclasses.is_dataclass(Err)
-        params = Err.__dataclass_params__
-        assert params.frozen is True
-        assert params.kw_only is True
-        assert hasattr(Err, "__slots__")
-        with pytest.raises(TypeError):
-            Err("boom")  # type: ignore[misc]
-
     def test_is_ok_is_err(self):
         """GIVEN Ok/Err 인스턴스
            WHEN is_ok()/is_err()를 호출하면
