@@ -12,6 +12,9 @@
     * 불변/경량: `dataclass(frozen=True, slots=True)`로 불변성과 메모리 효율을 확보합니다.
     * 저할당화: 고정 메시지 오류는 모듈 싱글턴으로 재사용합니다.
 
+네이밍:
+    * 오류 코드는 **snake_case**를 사용합니다. 예: ``"timestamp_naive"``, ``"vo_empty"``.
+
 예시:
     >>> err = tz_naive_err()
     >>> err.code, err.message
@@ -24,14 +27,27 @@ from dataclasses import dataclass
 from typing import Iterable
 
 __all__ = [
+    # 타입
     "DomainError",
+    # 엔티티/타임스탬프 계열
     "tz_naive_err",
     "order_err",
     "archived_modify_err",
     "immutable_field_err",
+    # VO 계열(싱글턴/동적)
+    "vo_empty_err",
+    "vo_email_err",
+    "vo_krw_not_int_err",
+    "vo_percent_not_number_err",
+    "vo_len_gt_err",
+    "vo_out_of_range_err",
+    "vo_krw_negative_err",
 ]
 
 
+# ──────────────────────────────────────────────────────────────
+# 기본 타입
+# ──────────────────────────────────────────────────────────────
 @dataclass(frozen=True, slots=True)
 class DomainError:
     """도메인 오류를 표현하는 불변 값 객체.
@@ -39,15 +55,17 @@ class DomainError:
     도메인/애플리케이션 계층에서 실패를 표현하는 데이터 타입입니다.
 
     Attributes:
-        code (str): 오류 코드(영문 소문자/밑줄 권장). 예: ``"timestamp_naive"``.
-        message (str): 사용자 또는 로그 출력용 메시지.
-    """
+        code: 오류 코드(영문 소문자/밑줄 권장). 예: ``"timestamp_naive"``.
+        message: 사용자 또는 로그 출력용 메시지(간결 권장).
+    """  # Google style docstring
 
     code: str
     message: str
 
 
-# 고정 메시지 오류는 싱글턴으로 재사용 (경량화)
+# ──────────────────────────────────────────────────────────────
+# 엔티티/타임스탬프 계열 — 고정 메시지(싱글턴)
+# ──────────────────────────────────────────────────────────────
 _TZ_NAIVE = DomainError("timestamp_naive", "datetime must be timezone-aware")
 _ORDER = DomainError("timestamp_order", "updated_at must be ≤ now")
 _ARCHIVED_MOD = DomainError("archived_entity", "archived entity cannot be modified")
@@ -101,3 +119,87 @@ def immutable_field_err(fields: Iterable[str]) -> DomainError:
     """
     fs = ", ".join(sorted(set(fields)))
     return DomainError("immutable_field", f"immutable fields cannot be changed: {fs}")
+
+
+# ──────────────────────────────────────────────────────────────
+# VO 계열 — 고정 메시지(싱글턴) + 값 의존(동적)
+# ──────────────────────────────────────────────────────────────
+# (싱글턴) 입력값에 의존하지 않는 고정 메시지
+_VO_EMPTY = DomainError("vo_empty", "빈 문자열은 허용되지 않습니다.")
+_VO_EMAIL = DomainError("vo_email", "이메일 형식")
+_VO_KRW_NOT_INT = DomainError("vo_krw_not_int", "정수만 허용")
+_VO_PERCENT_NOT_NUMBER = DomainError("vo_percent_not_number", "숫자만 허용")
+
+
+def vo_empty_err() -> DomainError:
+    """VO: 빈 문자열 금지(싱글턴).
+
+    Returns:
+        DomainError: 코드 ``"vo_empty"`` 의 싱글턴 오류.
+    """
+    return _VO_EMPTY
+
+
+def vo_email_err() -> DomainError:
+    """VO: 이메일 형식 위반(싱글턴).
+
+    Returns:
+        DomainError: 코드 ``"vo_email"`` 의 싱글턴 오류.
+    """
+    return _VO_EMAIL
+
+
+def vo_krw_not_int_err() -> DomainError:
+    """VO: KRW 값이 정수가 아님(싱글턴).
+
+    Returns:
+        DomainError: 코드 ``"vo_krw_not_int"`` 의 싱글턴 오류.
+    """
+    return _VO_KRW_NOT_INT
+
+
+def vo_percent_not_number_err() -> DomainError:
+    """VO: Percent 값이 숫자가 아님(싱글턴).
+
+    Returns:
+        DomainError: 코드 ``"vo_percent_not_number"`` 의 싱글턴 오류.
+    """
+    return _VO_PERCENT_NOT_NUMBER
+
+
+# (동적) 값에 따라 메시지가 달라지는 경우
+def vo_len_gt_err(*, limit: int, got: int) -> DomainError:
+    """VO: 최대 길이 초과.
+
+    Args:
+        limit: 허용되는 최대 길이.
+        got: 실제 길이.
+
+    Returns:
+        DomainError: 코드 ``"vo_len_gt"`` 의 동적 오류(메시지에 상세 포함).
+
+    Examples:
+        >>> e = vo_len_gt_err(limit=10, got=12)
+        >>> (e.code, e.message)
+        ('vo_len_gt', '길이>10 (got=12)')
+    """
+    return DomainError("vo_len_gt", f"길이>{limit} (got={got})")
+
+
+def vo_out_of_range_err(*, min_: float | None, max_: float | None, got: float) -> DomainError:
+    """VO: 범위 제약 위반(연속값).
+
+    Args:
+        min_: 하한(없으면 None).
+        max_: 상한(없으면 None).
+        got: 실제 값.
+
+    Returns:
+        DomainError: 코드 ``"vo_out_of_range"`` 의 동적 오류.
+
+    Examples:
+        >>> e = vo_out_of_range_err(min_=0.0, max_=100.0, got=120.0)
+        >>> (e.code, '≤' in e.message)
+        ('vo_out_of_range', True)
+    """
+    return DomainError("vo_out_of_range", f"{min_} ≤ x ≤ {max_} (got={got})")
